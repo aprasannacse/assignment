@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PetController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Person Information Management System</a> &gt; <a href="index.source.html" class="el_package">com.rabo.pims.controller</a> &gt; <span class="el_source">PetController.java</span></div><h1>PetController.java</h1><pre class="source lang-java linenums">package com.rabo.pims.controller;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.rabo.pims.dto.PetReqDTO;
+import com.rabo.pims.dto.PetRespDTO;
+import com.rabo.pims.exception.ErrorResponse;
+import com.rabo.pims.exception.PetLinkedAlreadyException;
+import com.rabo.pims.exception.PetNotAvailableException;
+import com.rabo.pims.exception.PetNotFoundException;
+import com.rabo.pims.service.PetServiceImpl;
+import com.rabo.pims.utils.DataUtils;
+import com.rabo.pims.utils.Log4jManager;
+
+@RestController	
+
+<span class="fc" id="L30">public class PetController {</span>
+	@Autowired
+	private PetServiceImpl petService;
+
+<span class="fc" id="L34">	HttpStatus httpStatusCode=null;</span>
+<span class="fc" id="L35">	ErrorResponse error = null;</span>
+<span class="fc" id="L36">	List&lt;String&gt; details = new ArrayList&lt;&gt;();</span>
+
+	@PostMapping(value = &quot;/pet&quot;)
+	public ResponseEntity&lt;PetRespDTO&gt; addPet(@RequestBody PetReqDTO petReqEntity){
+<span class="fc" id="L40">		PetRespDTO respEnity = null;		</span>
+		try {
+<span class="fc" id="L42">			Log4jManager.writeDebugLog(&quot;Invoked PetController:addPet()&quot;);</span>
+<span class="fc" id="L43">			respEnity = petService.addPet(petReqEntity);</span>
+<span class="fc" id="L44">			httpStatusCode=HttpStatus.CREATED;</span>
+<span class="pc" id="L45">		}catch(Exception e) {</span>
+<span class="nc" id="L46">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L47">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+<span class="fc" id="L49">		Log4jManager.writeDebugLog(&quot;PetController:addPet()|Response Status Code&quot;+httpStatusCode); </span>
+<span class="fc" id="L50">		return new ResponseEntity&lt;&gt;(respEnity, httpStatusCode);</span>
+	}
+
+	@GetMapping(value = &quot;/pets&quot;,produces = {&quot;application/json&quot;} )
+	
+	public ResponseEntity&lt;List&lt;PetRespDTO&gt;&gt; getAllPets()
+	{
+
+<span class="fc" id="L58">		List&lt;PetRespDTO&gt; objPetsList= null;</span>
+		try {
+<span class="fc" id="L60">			Log4jManager.writeDebugLog(&quot;Invoked PetController:getAllPets()&quot;);</span>
+<span class="fc" id="L61">			objPetsList= petService.getAllPets();</span>
+
+<span class="pc bpc" id="L63" title="2 of 4 branches missed.">			if(!(objPetsList == null || objPetsList.isEmpty())) {</span>
+<span class="fc" id="L64">				httpStatusCode=HttpStatus.OK;</span>
+<span class="fc" id="L65">			}else{</span>
+<span class="nc" id="L66">				httpStatusCode= HttpStatus.NO_CONTENT;</span>
+			}
+<span class="nc" id="L68">		}catch(PetNotFoundException p) {</span>
+<span class="nc" id="L69">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p)); //</span>
+<span class="nc" id="L70">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="nc" id="L71">			details.add(p.getLocalizedMessage());</span>
+<span class="nc" id="L72">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="nc" id="L73">			return new ResponseEntity(error, HttpStatus.NOT_FOUND);</span>
+<span class="nc" id="L74">		}catch(Exception e) {</span>
+<span class="nc" id="L75">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L76">			httpStatusCode=HttpStatus.NO_CONTENT;</span>
+		}
+<span class="fc" id="L78">		Log4jManager.writeDebugLog(&quot;PetController:getAllPets()|Response Status Code&quot;+httpStatusCode); </span>
+<span class="fc" id="L79">		return new ResponseEntity&lt;&gt;(objPetsList, httpStatusCode);</span>
+
+	}
+	@PutMapping(&quot;/pet/{petId}&quot;)
+	public ResponseEntity&lt;PetRespDTO&gt; updatePetDetails(@PathVariable int petId,@RequestBody PetReqDTO petReqEntity) 
+	{
+<span class="fc" id="L85">		PetRespDTO respEnity = null;</span>
+		try {
+<span class="fc" id="L87">			Log4jManager.writeDebugLog(&quot;Invoked PetController:updatePetDetails()&quot;);</span>
+
+<span class="fc" id="L89">			respEnity = petService.updatePetDetails(petReqEntity,petId);</span>
+
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">			if(!(null == respEnity)) {</span>
+<span class="fc" id="L92">				httpStatusCode= HttpStatus.OK;</span>
+			}
+<span class="fc" id="L94">		}catch(PetNotFoundException e) {</span>
+<span class="fc" id="L95">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="fc" id="L96">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="fc" id="L97">			details.add(e.getLocalizedMessage());</span>
+<span class="fc" id="L98">			error = new ErrorResponse(e.getMessage(), details);</span>
+<span class="fc" id="L99">			return new ResponseEntity(error,httpStatusCode);</span>
+<span class="nc" id="L100">		}catch(Exception e) {</span>
+<span class="nc" id="L101">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L102">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+<span class="fc" id="L104">		Log4jManager.writeDebugLog(&quot;PetController:updatePetDetails()|Response Status Code&quot;+httpStatusCode);</span>
+<span class="fc" id="L105">		return new ResponseEntity&lt;PetRespDTO&gt;(respEnity, httpStatusCode);		</span>
+
+	}
+	
+	@DeleteMapping(&quot;/pet/{petId}&quot;)
+	//@PreAuthorize(&quot;denyAll&quot;) // To disable this end point access, uncomment this annotation 
+	public ResponseEntity&lt;HttpStatus&gt; deletePet(@PathVariable(&quot;petId&quot;) int petId) {
+		try {
+<span class="fc" id="L113">			Log4jManager.writeDebugLog(&quot;Invoked PetController:deletePet()&quot;);</span>
+
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">			if(petService.deleteById(petId)) {</span>
+<span class="fc" id="L116">				httpStatusCode= HttpStatus.OK;</span>
+<span class="fc" id="L117">			}else {</span>
+<span class="nc" id="L118">				httpStatusCode= HttpStatus.NO_CONTENT; </span>
+			}
+
+<span class="nc" id="L121">		} catch (Exception e) {</span>
+<span class="nc" id="L122">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L123">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+<span class="fc" id="L125">		Log4jManager.writeDebugLog(&quot;PetController:deletePet()|Response Status Code&quot;+httpStatusCode);</span>
+<span class="fc" id="L126">		return new ResponseEntity&lt;&gt;(httpStatusCode);</span>
+
+	}
+
+	@PostMapping(value = &quot;/pet/{personId}&quot;)
+	public ResponseEntity&lt;PetRespDTO&gt; linkPetToPerson(@PathVariable int personId,@RequestBody PetReqDTO petReqEntity ) 
+	{
+<span class="fc" id="L133">		PetRespDTO respEnity = null;</span>
+		try {
+<span class="fc" id="L135">			Log4jManager.writeDebugLog(&quot;Invoked PetController:linkPetToPerson()&quot;);</span>
+
+<span class="fc" id="L137">			respEnity = petService.linkPetToPerson(personId,petReqEntity);</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">			if(!(null == respEnity)) {</span>
+<span class="fc" id="L139">			httpStatusCode= HttpStatus.CREATED;</span>
+			}
+
+<span class="fc" id="L142">		}catch(PetLinkedAlreadyException | PetNotAvailableException e) {</span>
+<span class="fc" id="L143">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="fc" id="L144">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="fc" id="L145">			details.add(e.getLocalizedMessage());</span>
+<span class="fc" id="L146">			error = new ErrorResponse(e.getMessage(), details);</span>
+<span class="fc" id="L147">			return new ResponseEntity(error,httpStatusCode);</span>
+<span class="nc" id="L148">		}catch (Exception e){</span>
+<span class="nc" id="L149">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L150">			httpStatusCode= HttpStatus.NO_CONTENT;</span>
+		}
+<span class="fc" id="L152">		Log4jManager.writeDebugLog(&quot;PetController:linkPetToPerson()|Response Status Code&quot;+httpStatusCode);</span>
+<span class="fc" id="L153">		return new ResponseEntity&lt;&gt;(respEnity,httpStatusCode);</span>
+
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

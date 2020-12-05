@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersonServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Person Information Management System</a> &gt; <a href="index.source.html" class="el_package">com.rabo.pims.service</a> &gt; <span class="el_source">PersonServiceImpl.java</span></div><h1>PersonServiceImpl.java</h1><pre class="source lang-java linenums">package com.rabo.pims.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.rabo.pims.dto.PersonReqDTO;
+import com.rabo.pims.dto.PersonRespDTO;
+import com.rabo.pims.entity.PersonEntity;
+import com.rabo.pims.exception.PersonAlreadyExistException;
+import com.rabo.pims.exception.PersonNotFoundException;
+import com.rabo.pims.repository.PersonRepository;
+import com.rabo.pims.repository.PetRepository;
+import com.rabo.pims.utils.DataUtils;
+import com.rabo.pims.utils.Log4jManager;
+
+@Service
+<span class="fc" id="L22">public class PersonServiceImpl {</span>
+
+	@Autowired
+	PersonRepository repo;
+
+	@Autowired
+	PetRepository petRepo;
+
+	public PersonRespDTO addPerson(PersonReqDTO personReqEntity) 
+	{			
+<span class="fc" id="L32">		Log4jManager.writeDebugLog(&quot;Invoked PersonServiceImpl:addPerson()&quot;);</span>
+<span class="fc" id="L33">		PersonEntity person = null;</span>
+<span class="fc" id="L34">		PersonReqDTO personReq = new PersonReqDTO();</span>
+<span class="fc" id="L35">		PersonRespDTO objPersonResEnty = null;</span>
+
+		try {
+
+<span class="fc" id="L39">			person = personReq.getPerson(personReqEntity);</span>
+
+<span class="fc" id="L41">			Optional&lt;List&lt;PersonEntity&gt;&gt; listObj=checkNameExists(person.getFirstName(),person.getLastName());</span>
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">			if(!listObj.isPresent()) {</span>
+<span class="fc" id="L44">				objPersonResEnty=new PersonRespDTO(repo.save(person));</span>
+				
+<span class="fc" id="L46">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:addPerson()|Person created succesfully&quot;);</span>
+<span class="fc" id="L47">			}else {</span>
+<span class="fc" id="L48">				throw new PersonAlreadyExistException(&quot;Person name &quot;+personReqEntity.getFirstName()+&quot;,&quot;+personReqEntity.getLastName()+&quot; already exist&quot;);</span>
+			}
+
+<span class="fc" id="L51">		}catch (PersonAlreadyExistException p) {</span>
+<span class="fc" id="L52">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p));</span>
+<span class="fc" id="L53">			throw new PersonAlreadyExistException(&quot;Person name &quot;+personReqEntity.getFirstName()+&quot;,&quot;+personReqEntity.getLastName()+&quot; already exist&quot;);</span>
+<span class="nc" id="L54">		}catch (Exception e) {</span>
+<span class="nc" id="L55">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+		}
+
+<span class="fc" id="L58">		return objPersonResEnty;</span>
+
+	}
+
+	public List&lt;PersonRespDTO&gt; getAllPersons() {	
+<span class="fc" id="L63">		List&lt;PersonEntity&gt; lstPersons = new ArrayList&lt;PersonEntity&gt;();</span>
+<span class="fc" id="L64">		List&lt;PersonRespDTO&gt; lstRespPersons = new ArrayList&lt;PersonRespDTO&gt;();</span>
+		try {
+<span class="fc" id="L66">			Log4jManager.writeDebugLog(&quot;Invoked PersonServiceImpl:getAllPersons()&quot;);</span>
+<span class="fc" id="L67">			repo.findAll().forEach(lstPersons::add);			</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">			if(!lstPersons.isEmpty()) {</span>
+<span class="fc" id="L69">				lstRespPersons = lstPersons.stream().map(PersonRespDTO::new).collect(Collectors.toList());</span>
+<span class="fc" id="L70">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:getAllPersons() | Person Details retrieved sucessfully&quot;);</span>
+<span class="fc" id="L71">			}else {</span>
+<span class="nc" id="L72">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:getAllPersons() | Person Details not available&quot;);</span>
+<span class="nc" id="L73">				throw new PersonNotFoundException(&quot;No Records found&quot;);</span>
+			}
+
+<span class="nc" id="L76">		}catch(PersonNotFoundException e) {</span>
+<span class="nc" id="L77">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L78">			throw new PersonNotFoundException(&quot;No Records found&quot;);</span>
+		}
+<span class="nc" id="L80">		catch(Exception e) {</span>
+<span class="nc" id="L81">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+		}
+<span class="fc" id="L83">		return lstRespPersons;</span>
+	}
+
+	public PersonRespDTO getPersonById(Integer id)  {	
+
+<span class="fc" id="L88">		Optional&lt;PersonEntity&gt; person_details =null;</span>
+		try {
+<span class="fc" id="L90">			Log4jManager.writeDebugLog(&quot;Invoked PersonServiceImpl:getPersonById()&quot;);</span>
+
+<span class="fc" id="L92">			person_details =repo.findById(id);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">			if(!person_details.isPresent()) {</span>
+<span class="fc" id="L94">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:getPersonById()| Person Id &quot;+id+&quot; not found&quot;);</span>
+<span class="fc" id="L95">				throw new PersonNotFoundException(&quot;Person Id &quot;+id+&quot; not found&quot;);</span>
+			}else {
+<span class="fc" id="L97">				return new PersonRespDTO(person_details.get());</span>
+			}
+<span class="fc" id="L99">		}catch(PersonNotFoundException p) {</span>
+<span class="fc" id="L100">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p));</span>
+<span class="fc" id="L101">			throw new PersonNotFoundException(&quot;Person Id &quot;+id+&quot; not found&quot;);</span>
+<span class="nc" id="L102">		}catch(Exception e) {</span>
+<span class="nc" id="L103">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+
+		}
+<span class="nc" id="L106">		return new PersonRespDTO(null);</span>
+
+	}
+
+	public PersonRespDTO updateAddress(PersonReqDTO personReqEntity,int id) { 
+
+<span class="fc" id="L112">		PersonEntity personEntity,newPerson = new PersonEntity();</span>
+<span class="fc" id="L113">		Optional&lt;PersonEntity&gt; oldPerson = null;</span>
+<span class="fc" id="L114">		PersonReqDTO personReq = new PersonReqDTO();</span>
+		try {
+<span class="fc" id="L116">			newPerson = personReq.getPerson(personReqEntity);</span>
+<span class="fc" id="L117">			oldPerson = repo.findById(id);</span>
+
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">			if(oldPerson.isPresent()) {			</span>
+<span class="fc" id="L120">				personEntity = oldPerson.get();</span>
+<span class="fc" id="L121">				personEntity.setCurrentAddress(newPerson.getCurrentAddress());  </span>
+<span class="fc" id="L122">				return new PersonRespDTO(repo.save(personEntity));</span>
+			}else {
+<span class="nc" id="L124">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:updateAddress()| Person Id &quot;+id+&quot; not found to update&quot;);</span>
+<span class="nc" id="L125">				throw new PersonNotFoundException(&quot;Person Id &quot;+id+&quot; not found to update&quot;);</span>
+			}
+<span class="nc" id="L127">		}catch(PersonNotFoundException p) {</span>
+<span class="nc" id="L128">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p));</span>
+<span class="nc" id="L129">			throw new PersonNotFoundException(&quot;Person Id &quot;+id+&quot; not found to update&quot;);</span>
+<span class="nc" id="L130">		}catch(Exception e) {</span>
+<span class="nc" id="L131">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+		}
+<span class="nc" id="L133">		return new PersonRespDTO(null);</span>
+	}
+
+	public List&lt;PersonRespDTO&gt; getPersonByName(String firstName,String lastName) {
+
+<span class="fc" id="L138">		Optional &lt;List&lt;PersonEntity&gt;&gt; lstPersons = null;</span>
+<span class="fc" id="L139">		List&lt;PersonRespDTO&gt; lstRespPersons = null;</span>
+<span class="fc" id="L140">		List&lt;PersonEntity&gt; persons = null;</span>
+		try {
+
+<span class="fc" id="L143">			lstPersons =repo.findByName(firstName,lastName);</span>
+			
+<span class="pc bpc" id="L145" title="3 of 8 branches missed.">			if( (firstName == null || firstName.isEmpty() ) || (lastName == null || lastName.isEmpty() ) ) {</span>
+<span class="fc" id="L146">				persons = lstPersons.get().stream().</span>
+<span class="pc bpc" id="L147" title="3 of 4 branches missed.">						filter(person -&gt; person.getFirstName().equalsIgnoreCase(firstName) || person.getLastName().equalsIgnoreCase(lastName))</span>
+<span class="fc" id="L148">						.collect(Collectors.toList());</span>
+<span class="fc" id="L149">			}else {</span>
+<span class="fc" id="L150">				persons = lstPersons.get().stream().</span>
+<span class="fc bfc" id="L151" title="All 4 branches covered.">						filter(person -&gt; person.getFirstName().equalsIgnoreCase(firstName) &amp;&amp; person.getLastName().equalsIgnoreCase(lastName) )</span>
+<span class="fc" id="L152">						.collect(Collectors.toList());				</span>
+			}
+			
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">			if(!persons.isEmpty()) {</span>
+<span class="fc" id="L156">				lstRespPersons = persons.stream().map(PersonRespDTO::new).collect(Collectors.toList());</span>
+<span class="fc" id="L157">			}else {</span>
+<span class="nc" id="L158">				Log4jManager.writeDebugLog(&quot;PersonServiceImpl:getPersonByName()| Person firstName &quot;+firstName+&quot; and lastName &quot;+lastName+ &quot; not found&quot;);</span>
+<span class="nc" id="L159">				throw new PersonNotFoundException(&quot;Person firstName &quot;+firstName+&quot; and/or lastName &quot;+lastName+ &quot; not found &quot;);</span>
+			}
+<span class="nc" id="L161">		}catch(PersonNotFoundException p) {</span>
+<span class="nc" id="L162">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p));</span>
+<span class="nc" id="L163">			throw new PersonNotFoundException(&quot;Person firstName &quot;+firstName+&quot; and/or lastName &quot;+lastName+ &quot; not found &quot;);</span>
+<span class="fc" id="L164">		}catch (Exception e) {</span>
+<span class="fc" id="L165">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+
+		}
+
+<span class="fc" id="L169">		return lstRespPersons;</span>
+
+
+	}
+
+
+	public Optional&lt;List&lt;PersonEntity&gt;&gt; checkNameExists(String firstName,String lastName) {
+
+<span class="fc" id="L177">		Log4jManager.writeDebugLog(&quot;Invoked PersonServiceImpl:checkNameExists()&quot;);</span>
+
+<span class="fc" id="L179">		Optional&lt;List&lt;PersonEntity&gt;&gt;  person_details =null;</span>
+		try {
+<span class="fc" id="L181">			person_details =repo.findByfirstAndlastName(firstName,lastName);	</span>
+<span class="pc" id="L182">		}catch(Exception e) {</span>
+<span class="nc" id="L183">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));	</span>
+		}		
+<span class="fc" id="L185">		return person_details;</span>
+
+	}
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersonController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Person Information Management System</a> &gt; <a href="index.source.html" class="el_package">com.rabo.pims.controller</a> &gt; <span class="el_source">PersonController.java</span></div><h1>PersonController.java</h1><pre class="source lang-java linenums">
+package com.rabo.pims.controller;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.rabo.pims.dto.PersonReqDTO;
+import com.rabo.pims.dto.PersonRespDTO;
+import com.rabo.pims.exception.ErrorResponse;
+import com.rabo.pims.exception.PersonAlreadyExistException;
+import com.rabo.pims.exception.PersonNotFoundException;
+import com.rabo.pims.service.PersonServiceImpl;
+import com.rabo.pims.utils.DataUtils;
+import com.rabo.pims.utils.Log4jManager;
+
+
+@RestController
+<span class="fc" id="L29">public class PersonController </span>
+{
+
+	@Autowired
+	private PersonServiceImpl pmSerObj;
+
+<span class="fc" id="L35">	HttpStatus httpStatusCode = null;</span>
+<span class="fc" id="L36">	ErrorResponse error = null;</span>
+<span class="fc" id="L37">	List&lt;String&gt; details = new ArrayList&lt;&gt;();</span>
+
+	@PostMapping(value = &quot;/person&quot;)
+	public ResponseEntity&lt;PersonRespDTO&gt; addPerson(@RequestBody PersonReqDTO personReqEntity )
+	{
+<span class="fc" id="L42">		PersonRespDTO respEnity =null;</span>
+		try {
+<span class="fc" id="L44">			Log4jManager.writeDebugLog(&quot;Invoked PersonController:addPerson()&quot;);</span>
+<span class="fc" id="L45">			respEnity = pmSerObj.addPerson(personReqEntity);</span>
+
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">			if(!(respEnity == null)) {</span>
+<span class="fc" id="L48">				httpStatusCode= HttpStatus.CREATED;</span>
+<span class="fc" id="L49">			}else {</span>
+<span class="nc" id="L50">				httpStatusCode= HttpStatus.NO_CONTENT;</span>
+			}
+<span class="nc" id="L52">		}</span>
+<span class="fc" id="L53">		catch (PersonAlreadyExistException p) {</span>
+<span class="fc" id="L54">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p));</span>
+<span class="fc" id="L55">			httpStatusCode= HttpStatus.NOT_ACCEPTABLE;			</span>
+<span class="fc" id="L56">			details.add(p.getLocalizedMessage());</span>
+<span class="fc" id="L57">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="fc" id="L58">			return new ResponseEntity(error, httpStatusCode);</span>
+		}
+<span class="nc" id="L60">		catch (Exception e) {</span>
+<span class="nc" id="L61">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L62">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+
+<span class="fc" id="L65">		Log4jManager.writeDebugLog(&quot;PersonController:addPerson()|Response Status Code&quot;+httpStatusCode); </span>
+<span class="fc" id="L66">		return new ResponseEntity&lt;PersonRespDTO&gt;(respEnity, httpStatusCode);</span>
+	}
+
+	@GetMapping(value = &quot;/persons&quot;,produces = {&quot;application/json&quot;} )	
+	public ResponseEntity&lt;List&lt;PersonRespDTO&gt;&gt; getAllPersons(){
+<span class="fc" id="L71">		List&lt;PersonRespDTO&gt; objPersonList=null;</span>
+<span class="fc" id="L72">		Log4jManager.writeDebugLog(&quot;Invoked PersonController:getAllPersons()&quot;);</span>
+
+		try {
+<span class="fc" id="L75">			objPersonList= pmSerObj.getAllPersons();</span>
+
+<span class="pc bpc" id="L77" title="2 of 4 branches missed.">			if(!(objPersonList == null || objPersonList.isEmpty())) {</span>
+<span class="fc" id="L78">				httpStatusCode= HttpStatus.OK;</span>
+<span class="fc" id="L79">			}else{</span>
+<span class="nc" id="L80">				httpStatusCode= HttpStatus.NO_CONTENT;</span>
+			}
+
+<span class="nc" id="L83">		}catch(PersonNotFoundException p) {</span>
+<span class="nc" id="L84">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p)); //</span>
+<span class="nc" id="L85">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="nc" id="L86">			details.add(p.getLocalizedMessage());</span>
+<span class="nc" id="L87">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="nc" id="L88">			return new ResponseEntity(error, HttpStatus.NOT_FOUND);</span>
+<span class="nc" id="L89">		}catch(Exception e) {</span>
+<span class="nc" id="L90">			e.printStackTrace();</span>
+<span class="nc" id="L91">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L92">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+<span class="fc" id="L94">		Log4jManager.writeDebugLog(&quot;PersonController:getAllPersons()|Response Status Code&quot;+httpStatusCode); </span>
+
+<span class="fc" id="L96">		return new ResponseEntity&lt;&gt;(objPersonList, HttpStatus.OK);</span>
+
+	}
+
+	@GetMapping(value = &quot;/person/{personId}&quot;,produces = {&quot;application/json&quot;})	
+	public ResponseEntity&lt;PersonRespDTO&gt; getPersonById(@PathVariable Integer personId) 
+	{
+<span class="fc" id="L103">		PersonRespDTO objRespEntity = null;</span>
+<span class="fc" id="L104">		HttpStatus httpStatusCode=null;</span>
+		try {
+<span class="fc" id="L106">			Log4jManager.writeDebugLog(&quot;Invoked PersonController:getPersonById()&quot;);</span>
+<span class="fc" id="L107">			Log4jManager.writeDebugLog(&quot;PersonController:getPersonById()|Request Id&quot;+personId); </span>
+
+<span class="fc" id="L109">			objRespEntity = pmSerObj.getPersonById(personId);</span>
+
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">			if(!(objRespEntity == null)) {</span>
+<span class="fc" id="L112">				httpStatusCode= HttpStatus.OK;</span>
+<span class="fc" id="L113">			}else {</span>
+<span class="nc" id="L114">				httpStatusCode= HttpStatus.NO_CONTENT;</span>
+			}
+<span class="nc" id="L116">		} </span>
+<span class="fc" id="L117">		catch(PersonNotFoundException p) {</span>
+<span class="fc" id="L118">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p)); //</span>
+<span class="fc" id="L119">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="fc" id="L120">			details.add(p.getLocalizedMessage());</span>
+<span class="fc" id="L121">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="fc" id="L122">			return new ResponseEntity(error, HttpStatus.NOT_FOUND);</span>
+		}
+<span class="nc" id="L124">		catch(Exception e) {</span>
+<span class="nc" id="L125">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L126">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;			</span>
+		}
+<span class="fc" id="L128">		Log4jManager.writeDebugLog(&quot;PersonController:getPersonById()|Response Status Code&quot;+httpStatusCode); </span>
+
+<span class="fc" id="L130">		return new ResponseEntity&lt;PersonRespDTO&gt;(objRespEntity, httpStatusCode);</span>
+
+	}
+
+
+	@PutMapping(value=&quot;/person/{personId}&quot;,produces = {&quot;application/json&quot;})
+	@PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+	public ResponseEntity&lt;PersonRespDTO&gt; updatePersonAddress(@PathVariable int personId,@RequestBody PersonReqDTO personReqEntity) 
+	{
+<span class="fc" id="L139">		PersonRespDTO objRespEntity =null;</span>
+<span class="fc" id="L140">		HttpStatus httpStatusCode=null;</span>
+
+		try {
+
+<span class="fc" id="L144">			Log4jManager.writeDebugLog(&quot;Invoked PersonController:updatePersonAddress()&quot;);</span>
+<span class="fc" id="L145">			Log4jManager.writeDebugLog(&quot;PersonController:updatePersonAddress()|Request Id&quot;+personId);</span>
+
+<span class="fc" id="L147">			objRespEntity = pmSerObj.updateAddress(personReqEntity,personId);</span>
+
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">			if(!(objRespEntity == null)) {</span>
+<span class="fc" id="L150">				httpStatusCode= HttpStatus.OK;</span>
+			}
+
+<span class="pc" id="L153">		}catch(PersonNotFoundException p) {</span>
+<span class="nc" id="L154">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p)); //</span>
+<span class="nc" id="L155">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="nc" id="L156">			details.add(p.getLocalizedMessage());</span>
+<span class="nc" id="L157">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="nc" id="L158">			return new ResponseEntity(error, HttpStatus.NOT_FOUND);</span>
+<span class="nc" id="L159">		}catch(Exception e) {</span>
+<span class="nc" id="L160">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L161">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+
+<span class="fc" id="L164">		Log4jManager.writeDebugLog(&quot;PersonController:updatePersonAddress()|Response Status Code&quot;+httpStatusCode);</span>
+<span class="fc" id="L165">		return new ResponseEntity&lt;PersonRespDTO&gt;(objRespEntity,httpStatusCode);</span>
+
+	}
+
+	@GetMapping(value = &quot;/person&quot;,produces = {&quot;application/json&quot;})
+	public ResponseEntity&lt;List&lt;PersonRespDTO&gt;&gt; getPersonByName(
+			@RequestParam(value=&quot;firstName&quot;,required=false, defaultValue=&quot;&quot;) String firstName,
+			@RequestParam(value=&quot;lastName&quot;,required=false, defaultValue=&quot;&quot;)  String lastName) 
+	{
+
+<span class="fc" id="L175">		List&lt;PersonRespDTO&gt; objPersonList=null;</span>
+<span class="fc" id="L176">		HttpStatus httpStatusCode=null;</span>
+
+<span class="fc" id="L178">		Log4jManager.writeDebugLog(&quot;Invoked PersonController:getPersonByName()&quot;);</span>
+<span class="fc" id="L179">		Log4jManager.writeDebugLog(&quot;PersonController:getPersonByName()|Request firstName  &quot;+firstName+&quot; lastName  &quot;+lastName);</span>
+
+		try {
+<span class="fc" id="L182">			objPersonList= pmSerObj.getPersonByName(firstName,lastName);</span>
+
+<span class="pc bpc" id="L184" title="1 of 4 branches missed.">			if(!(objPersonList == null || objPersonList.isEmpty())) {</span>
+<span class="fc" id="L185">				httpStatusCode= HttpStatus.OK;</span>
+<span class="fc" id="L186">			}else {</span>
+<span class="fc" id="L187">				httpStatusCode= HttpStatus.NO_CONTENT;</span>
+			}
+<span class="pc" id="L189">		}catch(PersonNotFoundException p) {</span>
+<span class="nc" id="L190">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(p)); //</span>
+<span class="nc" id="L191">			httpStatusCode=HttpStatus.NOT_FOUND; 			</span>
+<span class="nc" id="L192">			details.add(p.getLocalizedMessage());</span>
+<span class="nc" id="L193">			error = new ErrorResponse(p.getMessage(), details);</span>
+<span class="nc" id="L194">			return new ResponseEntity(error, httpStatusCode);</span>
+<span class="nc" id="L195">		}catch(Exception e) {</span>
+<span class="nc" id="L196">			Log4jManager.writeErrorLog(DataUtils.setExceptionTrace(e));</span>
+<span class="nc" id="L197">			httpStatusCode=HttpStatus.INTERNAL_SERVER_ERROR;</span>
+		}
+
+<span class="fc" id="L200">		Log4jManager.writeDebugLog(&quot;PersonController:getPersonByName()|Response Status Code&quot;+httpStatusCode);</span>
+<span class="fc" id="L201">		return new ResponseEntity&lt;&gt;(objPersonList, httpStatusCode);</span>
+
+	}
+
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
